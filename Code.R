@@ -1,3 +1,4 @@
+######### Code for Figure 1 #########
 # Load libraries
 library(ggplot2)
 library(dplyr)
