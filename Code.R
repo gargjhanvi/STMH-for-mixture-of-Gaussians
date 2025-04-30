@@ -57,7 +57,7 @@ Z <- function(D, beta_val) {
 # ----- Simulation Parameters -----
 lambda <- 0.5
 iterations <- 1000
-N <- 5000
+N <- 1000
 eta <- 400
 D <- 20
 
