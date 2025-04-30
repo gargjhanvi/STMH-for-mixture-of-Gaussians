@@ -5,11 +5,11 @@ library(cubature)
 
 set.seed(123)
 
-# 2D mixture of Gaussians density
+# 2D mixture of Gaussians
 p <- function(D, x1, x2) {
   mu <- D / (2 * sqrt(2))
   0.5 * dnorm(x1, mean = mu, sd = 1) * dnorm(x2, mean = mu, sd = 1) +
-  0.5 * dnorm(x1, mean = -mu, sd = 1) * dnorm(x2, mean = -mu, sd = 1)
+    0.5 * dnorm(x1, mean = -mu, sd = 1) * dnorm(x2, mean = -mu, sd = 1)
 }
 
 # Negative log-density
@@ -17,7 +17,7 @@ f <- function(D, x1, x2) {
   -log(p(D, x1, x2))
 }
 
-# Generate inverse temperature schedule
+# Inverse temperature schedule
 beta <- function(D) {
   beta1 <- 1 / 400
   vec <- c(beta1)
@@ -42,6 +42,7 @@ Z <- function(D, beta_val) {
   support_radius <- 4
   lower <- c(-center - support_radius, -center - support_radius)
   upper <- c(center + support_radius, center + support_radius)
+  
   result <- cubintegrate(
     f = integrand,
     lower = lower,
@@ -49,28 +50,30 @@ Z <- function(D, beta_val) {
     relTol = 1e-8,
     absTol = 1e-12
   )
+  
   return(result$integral)
 }
 
-# ----- Simulation parameters -----
-D <- 4
+# ----- Simulation Parameters -----
 lambda <- 0.5
 iterations <- 1000
-N <- 100000
+N <- 5000
 eta <- 400
+D <- 20
 
 # Compute beta schedule and normalization constants
 beta_D <- beta(D)
 L <- length(beta_D)
 Z_vals <- sapply(beta_D, function(b) Z(D, b))
 
-# Initialze matrix to store samples
-samples_matrix <- matrix(nrow = iterations, ncol = N)
+# Initialize matrices to store x1 and x2 samples
+samples_matrix_x1 <- matrix(nrow = iterations, ncol = N)
+samples_matrix_x2 <- matrix(nrow = iterations, ncol = N)
 
-# ----- Run STMH chain -----
+# ----- Run STMH Chain -----
 for (iter in 1:iterations) {
-  x1 <- rnorm(1, mean = 10 / sqrt(2), sd = 1)
-  x2 <- rnorm(1, mean = 10 / sqrt(2), sd = 1)
+  x1 <- 10
+  x2 <- 10
   i <- 1
   n <- 1
   
@@ -82,37 +85,50 @@ for (iter in 1:iterations) {
       inew <- i + sample(c(-1, 1), size = 1)
       if (inew >= 1 && inew <= L) {
         fx <- f(D, x1, x2)
-        u <- runif(1)
         if (is.finite(fx)) {
           swap_ratio <- (Z_vals[i] * exp(-beta_D[inew] * fx)) /
             (Z_vals[inew] * exp(-beta_D[i] * fx))
         } else {
           swap_ratio <- 0
         }
-        if (u <= min(1, swap_ratio)) {
+        if (runif(1) <= min(1, swap_ratio)) {
           i <- inew
         }
       }
     } else {
-      # Propose spatial move via MH
+      # Propose move via MH 
       y1 <- rnorm(1, mean = x1, sd = sqrt(eta))
       y2 <- rnorm(1, mean = x2, sd = sqrt(eta))
       fx <- f(D, x1, x2)
       fy <- f(D, y1, y2)
-      u <- runif(1)
-      if (u <= min(1, exp(-beta_D[i] * (fy - fx)))) {
+      if (runif(1) <= min(1, exp(-beta_D[i] * (fy - fx)))) {
         x1 <- y1
         x2 <- y2
       }
     }
     
-    # Save sample (e.g., x1 coordinate)
-    samples_matrix[iter, n] <- sqrt(x1^2 + x2^2)
+    # Store x1 and x2 samples
+    samples_matrix_x1[iter, n] <- x1
+    samples_matrix_x2[iter, n] <- x2
     n <- n + 1
   }
 }
 
-# Analyze convergence 
-mean <- colMeans(samples_matrix)
-plot(mean, type = "l", col = "blue",
-     xlab = "Iteration", ylab = "Mean")
+# ----- Convergence Analysis -----
+mean_x1 <- colMeans(samples_matrix_x1)
+mean_x2 <- colMeans(samples_matrix_x2)
+
+cumulative_avg_x1 <- cumsum(mean_x1) / (1:N)
+cumulative_avg_x2 <- cumsum(mean_x2) / (1:N)
+
+# Plot for x1
+plot(1:N, cumulative_avg_x1, type = "l", col = "blue", lwd = 2,
+     xlab = "Number of Steps (N)",
+     ylab = expression(hat(mu)^N[1]))
+abline(h = 0, col = "red", lty = 2)
+
+# Plot for x2
+plot(1:N, cumulative_avg_x2, type = "l", col = "blue", lwd = 2,
+     xlab = "Number of Steps (N)",
+     ylab = expression(hat(mu)^N[2]))
+abline(h = 0, col = "red", lty = 2)
