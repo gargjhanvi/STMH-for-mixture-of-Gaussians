@@ -125,11 +125,13 @@ cumulative_avg_x2 <- cumsum(mean_x2) / (1:N)
 # Plot for x1
 plot(1:N, cumulative_avg_x1, type = "l", col = "blue", lwd = 2,
      xlab = "Number of Steps (N)",
-     ylab = expression(hat(mu)^N[1]))
+     ylab = expression(hat(mu)[1]^{"(N)"}),
+     cex.lab = 1.6)
 abline(h = 0, col = "red", lty = 2)
 
 # Plot for x2
 plot(1:N, cumulative_avg_x2, type = "l", col = "blue", lwd = 2,
      xlab = "Number of Steps (N)",
-     ylab = expression(hat(mu)^N[2]))
+     ylab = expression(hat(mu)[2]^{"(N)"}),
+     cex.lab = 1.6)
 abline(h = 0, col = "red", lty = 2)
